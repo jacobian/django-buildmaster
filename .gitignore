@@ -1,6 +1,7 @@
 /1_2_X-*
 /trunk-*
 /*.log
+/*.log.*
 /state.sqlite
 /passwords
 *.pyc

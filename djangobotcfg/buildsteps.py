@@ -51,6 +51,8 @@ class UpdateVirtualenv(ShellCommand):
     """
     
     name = 'virtualenv setup'
+    description = 'updating env'
+    descriptionDone = 'updated env'
     flunkOnFailure = True
     haltOnFailure = True
     
@@ -166,17 +168,23 @@ class TestDjango(Test):
     Runs Django's tests.
     """
     name = 'test'
-    
+        
     def __init__(self, python='python', db='sqlite', verbosity=2, **kwargs):
         kwargs['command'] = [
             '../venv-%s-%s/bin/python' % (python, db),
             'tests/runtests.py',
             '--settings=testsettings',
-            '--verbosity=%s' % verbosity
+            '--verbosity=%s' % verbosity,
         ]
         kwargs['env'] = {
             'PYTHONPATH': '$PWD:$PWD/tests'
         }
         
         Test.__init__(self, **kwargs)
+        
+        # Make sure not to spuriously count a warning from test cases
+        # using the word "warning". So skip any "warnings" on lines starting
+        # with "test_"
+        self.addSuppression([(None, "^test_", None, None)])
+        
         self.addFactoryArguments(python=python, db=db, verbosity=verbosity)

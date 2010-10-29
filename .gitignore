@@ -1,0 +1,6 @@
+/1_2_X-*
+/trunk-*
+/*.log
+/state.sqlite
+/passwords
+*.pyc

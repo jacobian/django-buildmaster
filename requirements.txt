@@ -1,0 +1,5 @@
+Jinja2==2.5.5
+Twisted==10.1.0
+buildbot==0.8.2
+zope.interface==3.6.1
+Unipath==0.2.1

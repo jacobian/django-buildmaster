@@ -336,7 +336,6 @@ div.BuildWaterfall {
 
 /* LastBuild, BuildStep states */
 .success {
-	color: #FFFFFF;
 	background-color: #8f8;
 	border-color: #4F8530;
 }
@@ -359,7 +358,11 @@ div.BuildWaterfall {
 	border-color: #ACA0B3;
 }
 
-.start,.running,td.building {
+.start {
+    background-color: #ccc;
+}
+
+.running,td.building {
 	color: #666666;
 	background-color: #ff6;
 	border-color: #C5C56D;

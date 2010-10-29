@@ -4,7 +4,8 @@ Individual custom build steps for the Django tests.
 See the docstring in builders.py for an overview of how these all fit together.
 
 I'm using subclasses (instead of just passing arguments) since it makes the
-overall build factor easier to read.
+overall build factory in builders.py easier to read. Unfortunately it makes some
+of what's going here a bit more confusing. Win some, lose some.
 """
 
 import textwrap
@@ -21,24 +22,27 @@ class DjangoSVN(SVN):
     """
     name = 'svn checkout'
     
-    def __init__(self, branch):
-        if branch == 'trunk':
+    def __init__(self, branch=None, **kwargs):
+        if branch is None or branch == 'trunk':
             svnurl = 'http://code.djangoproject.com/svn/django/trunk'
         else:
             svnurl = 'http://code.djangoproject.com/svn/django/branches/releases/%s' % branch
-        SVN.__init__(self, svnurl)
+        
+        kwargs['svnurl'] = svnurl
+        SVN.__init__(self, **kwargs)
         
 class DownloadVirtualenv(FileDownload):
     """
     Downloads virtualenv from the master to the slave.
     """
     name = 'virtualenv download'
+    flunkOnFailure = True
+    haltOnFailure = True
     
-    def __init__(self):
+    def __init__(self, **kwargs):
         FileDownload.__init__(self,
             mastersrc = 'virtualenv.py',
             slavedest = 'virtualenv.py',
-            flunkOnFailure = True,
         )
 
 class UpdateVirtualenv(ShellCommand):
@@ -50,8 +54,8 @@ class UpdateVirtualenv(ShellCommand):
     flunkOnFailure = True
     haltOnFailure = True
     
-    def __init__(self, python, db):
-        commands = [
+    def __init__(self, python='python', db='sqlite', **kwargs):
+        command = [
             r'PYTHON=%s;' % python,
             r'VENV=../venv-%s-%s;' % (python, db),
             
@@ -59,25 +63,28 @@ class UpdateVirtualenv(ShellCommand):
             r'$PYTHON virtualenv.py --distribute --no-site-packages $VENV || exit 1;',
 
             # Reset $PYTHON and $PIP to the venv python
-            r'$PYTHON=$PWD/$VENV/bin/python;',
-            r'$PIP=$PWD/$VENV/bin/pip;',
+            r'PYTHON=$PWD/$VENV/bin/python;',
+            r'PIP=$PWD/$VENV/bin/pip;',
         ]
         
         # Commands to install database dependencies if needed.
         if db.startswith('sqlite'):
-            commands.extend([
-                r"$PYTHON -c 'import sqlite3, sys; assert sys.version_info >= (2,6)' 2>/dev/null || ",
+            command.extend([
+                r"$PYTHON -c 'import sqlite3' 2>/dev/null || ",
                 r"$PYTHON -c 'import pysqlite2.dbapi2' ||",
                 r"$PIP install pysqlite || exit 1;",
             ])
         elif db.startswith('postgres'):
-            commands.append("$PYTHON -c 'import psycopg2' 2>/dev/null || $PIP install psycopg2==2.2.2 || exit 1")
+            command.append("$PYTHON -c 'import psycopg2' 2>/dev/null || $PIP install psycopg2==2.2.2 || exit 1")
         elif db.startswith('mysql'):
-            commands.append("$PYTHON -c 'import MySQLdb' 2>/dev/null || $PIP install MySQL-python==1.2.3 || exit 1")
+            command.append("$PYTHON -c 'import MySQLdb' 2>/dev/null || $PIP install MySQL-python==1.2.3 || exit 1")
         else:
             raise ValueError("Bad DB: %r" % db)
-            
-        ShellCommand.__init__(self, command="\n".join(commands))
+        
+        kwargs['command'] = "\n".join(command)
+        ShellCommand.__init__(self, **kwargs)
+        
+        self.addFactoryArguments(python=python, db=db)
         
 class GenerateSettings(StringDownload):
     """
@@ -85,7 +92,7 @@ class GenerateSettings(StringDownload):
     """
     name = 'generate settings'
     
-    def __init__(self, python, db, settings):
+    def __init__(self, python='python', db='sqlite', settings=None, **kwargs):
         if settings is None:
             if db.startswith('sqlite'):
                 settings = self.get_sqlite_settings()
@@ -96,7 +103,11 @@ class GenerateSettings(StringDownload):
             else:
                 raise ValueError("Bad DB: %r")
         
-        StringDownload.__init__(self, s=settings, slavedest='testsettings.py')
+        kwargs['s'] = settings
+        kwargs['slavedest'] = 'testsettings.py'
+        StringDownload.__init__(self, **kwargs)
+        
+        self.addFactoryArguments(python=python, db=db, settings=settings)
     
     def get_sqlite_settings(self):
         return textwrap.dedent('''
@@ -156,15 +167,16 @@ class TestDjango(Test):
     """
     name = 'test'
     
-    def __init__(self, python, db, verbosity=2):
-        Test.__init__(self,
-            command = [
-                '$PWD/../venv-%s-%s/bin/python' % (python, db),
-                'tests/runtests.py',
-                '--settings=testsettings',
-                '--verbosity=%s' % verbosity
-            ],
-            env = {
-                'PYTHONPATH': '$PWD:$PWD/tests'
-            }
-        )
+    def __init__(self, python='python', db='sqlite', verbosity=2, **kwargs):
+        kwargs['command'] = [
+            '../venv-%s-%s/bin/python' % (python, db),
+            'tests/runtests.py',
+            '--settings=testsettings',
+            '--verbosity=%s' % verbosity
+        ]
+        kwargs['env'] = {
+            'PYTHONPATH': '$PWD:$PWD/tests'
+        }
+        
+        Test.__init__(self, **kwargs)
+        self.addFactoryArguments(python=python, db=db, verbosity=verbosity)

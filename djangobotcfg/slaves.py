@@ -69,7 +69,7 @@ class DjangoBuildSlave(BuildSlave):
 slaves = [
     DjangoBuildSlave('local',
         os = 'osx-10.6',
-        pythons = ['python2.4', 'python2.5', 'python2.6'],
+        pythons = ['python2.5', 'python2.6'],
         databases = ['sqlite3.6.12', 'postgresql9.0.0'],
         max_builds = 1,
     ),

@@ -68,11 +68,11 @@ def generate_builders(branches, slaves):
 def make_factory(branch, python, database, settings):
     f = BuildFactory()
     f.addSteps([
-        buildsteps.DjangoSVN(branch),
+        buildsteps.DjangoSVN(branch=branch),
         buildsteps.DownloadVirtualenv(),
-        buildsteps.UpdateVirtualenv(python, database),
-        buildsteps.GenerateSettings(python, database, settings),
-        buildsteps.TestDjango(python, database),
+        buildsteps.UpdateVirtualenv(python=python, db=database),
+        buildsteps.GenerateSettings(python=python, db=database, settings=settings),
+        buildsteps.TestDjango(python=python, db=database),
     ])
     return f
     

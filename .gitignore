@@ -4,3 +4,4 @@
 /state.sqlite
 /passwords
 *.pyc
+*.pid

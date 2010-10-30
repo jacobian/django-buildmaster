@@ -3,6 +3,9 @@ A couple random utility functions.
 """
 
 import re
+import collections
+
+PackageSpec = collections.namedtuple('PackageSpec', 'name version')
 
 def parse_version_spec(spec, specificity=2):
     """
@@ -12,19 +15,19 @@ def parse_version_spec(spec, specificity=2):
     Ugh, that makes no sense. Examples::
     
         >>> parse_version_spec('python2.6')
-        ('python', '2.6')
+        PackageSpec(name='python', version='2.6')
         
         >>> parse_version_spec('postgresql8.4.2', specificity=1)
-        ('postgresql', '8')
+        PackageSpec(name='postgresql', version='8')
 
         >>> parse_version_spec('postgresql8.4.2', specificity=2)
-        ('postgresql', '8.4')
+        PackageSpec(name='postgresql', version='8.4')
         
         >>> parse_version_spec('postgresql8.4.2', specificity=3)
-        ('postgresql', '8.4.2')
+        PackageSpec(name='postgresql', version='8.4.2')
         
         >>> parse_version_spec('sqlite3')
-        ('sqlite', '3.X')
+        PackageSpec(name='sqlite', version='3.X')
         
     """
     m = re.match('([A-Za-z]+)([\d.]+)', spec)
@@ -34,5 +37,7 @@ def parse_version_spec(spec, specificity=2):
     base = m.group(1)
     versionbits = m.group(2).split('.')
     versionbits.extend(['X'] * (specificity - len(versionbits)))
-    return (base, ".".join(versionbits[:specificity]))
+    return PackageSpec(base, ".".join(versionbits[:specificity]))
     
+if __name__ == '__main__':
+    import doctest; doctest.testmod()

@@ -6,3 +6,5 @@
 /passwords
 *.pyc
 *.pid
+.coverage
+cover/

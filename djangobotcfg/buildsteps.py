@@ -12,6 +12,7 @@ import textwrap
 from buildbot.steps.source import SVN
 from buildbot.steps.shell import Test, ShellCommand
 from buildbot.steps.transfer import FileDownload, StringDownload
+from buildbot.process.properties import WithProperties
 
 class DjangoSVN(SVN):
     """
@@ -56,10 +57,11 @@ class UpdateVirtualenv(ShellCommand):
     flunkOnFailure = True
     haltOnFailure = True
     
-    def __init__(self, python='python', db='sqlite', **kwargs):
+    def __init__(self, python, db, **kwargs):
+        ### XXX explain wtf is going on below - double string interpolation, WithProperties... ugh.
         command = [
-            r'PYTHON=%s;' % python,
-            r'VENV=../venv-%s-%s;' % (python, db),
+            r'PYTHON=%%(python%s)s;' % python,
+            r'VENV=../venv-python%s-%s;' % (python, db),
             
             # Create or update the virtualenv
             r'$PYTHON virtualenv.py --distribute --no-site-packages $VENV || exit 1;',
@@ -70,20 +72,20 @@ class UpdateVirtualenv(ShellCommand):
         ]
         
         # Commands to install database dependencies if needed.
-        if db.startswith('sqlite'):
+        if db.name == 'sqlite':
             command.extend([
                 r"$PYTHON -c 'import sqlite3' 2>/dev/null || ",
                 r"$PYTHON -c 'import pysqlite2.dbapi2' ||",
                 r"$PIP install pysqlite || exit 1;",
             ])
-        elif db.startswith('postgres'):
+        elif db.name == 'postgresql':
             command.append("$PYTHON -c 'import psycopg2' 2>/dev/null || $PIP install psycopg2==2.2.2 || exit 1")
-        elif db.startswith('mysql'):
+        elif db.name == 'mysql':
             command.append("$PYTHON -c 'import MySQLdb' 2>/dev/null || $PIP install MySQL-python==1.2.3 || exit 1")
         else:
-            raise ValueError("Bad DB: %r" % db)
+            raise ValueError("Bad DB: %r" % db.name)
         
-        kwargs['command'] = "\n".join(command)
+        kwargs['command'] = WithProperties("\n".join(command))
         ShellCommand.__init__(self, **kwargs)
         
         self.addFactoryArguments(python=python, db=db)
@@ -94,22 +96,17 @@ class GenerateSettings(StringDownload):
     """
     name = 'generate settings'
     
-    def __init__(self, python='python', db='sqlite', settings=None, **kwargs):
-        if settings is None:
-            if db.startswith('sqlite'):
-                settings = self.get_sqlite_settings()
-            elif db.startswith('postgres'):
-                settings = self.get_postgres_settings()
-            elif db.startswith('mysql'):
-                settings = self.get_mysql_settings()
-            else:
-                raise ValueError("Bad DB: %r")
+    def __init__(self, python, db, **kwargs):
+        try:
+            settings = getattr(self, 'get_%s_settings' % db.name)()
+        except AttributeError:
+            raise ValueError("Bad DB: %r" % db.name)
         
         kwargs['s'] = settings
         kwargs['slavedest'] = 'testsettings.py'
         StringDownload.__init__(self, **kwargs)
         
-        self.addFactoryArguments(python=python, db=db, settings=settings)
+        self.addFactoryArguments(python=python, db=db)
     
     def get_sqlite_settings(self):
         return textwrap.dedent('''
@@ -125,7 +122,7 @@ class GenerateSettings(StringDownload):
             }
         ''')
         
-    def get_postgres_settings(self):
+    def get_postgresql_settings(self):
         return textwrap.dedent('''
             import os
             DATABASES = {
@@ -169,9 +166,9 @@ class TestDjango(Test):
     """
     name = 'test'
         
-    def __init__(self, python='python', db='sqlite', verbosity=2, **kwargs):
+    def __init__(self, python, db, verbosity=2, **kwargs):
         kwargs['command'] = [
-            '../venv-%s-%s/bin/python' % (python, db),
+            '../venv-python%s-%s/bin/python' % (python, db),
             'tests/runtests.py',
             '--settings=testsettings',
             '--verbosity=%s' % verbosity,

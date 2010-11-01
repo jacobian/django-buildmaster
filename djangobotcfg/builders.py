@@ -36,44 +36,60 @@ virtualenv for each build but still avoid re-building database bindings...
 """
 
 import itertools
+from buildbot.config import BuilderConfig
 from buildbot.process.factory import BuildFactory
-from .slaves import slaves
 from . import buildsteps
+from .utils import parse_version_spec
+    
+def get_builders(branches, slaves):
+    """
+    Gets a list of builders for entry in BuildmasterConfig['builders']
+    
+    Creates a builder for each (branch, python, database) combination.
+    """
+    builders = []
+    
+    # Figure out the superset of pythons and databases to test against. Since DB
+    # entries are as specific as possible ('postgresql8.3.1') there's some munging
+    # that needs to happen get the exact correct subset.
 
-# XXX This is be repeated and should moved elsewhere.
-BRANCHES = ['trunk']
-    
-def generate_builders(branches, slaves):
-    """
-    Generate a builder for each (slave, branch, python, database) combination.
-    
-    TODO: be more intellegent about not repeating combinations that exist on
-    multiple slaves. The better way would be to gather a list of *all* pythons &
-    dbs and then build those on any slave providing that config.
-    """
+    all_dbs = set()
+    all_pythons = set()
     for slave in slaves:
-        configs = itertools.product(BRANCHES, slave.pythons, slave.databases)
-        for (branch, python, database) in configs:
-            # Skip this combo if the slave can't build it.
-            if (python, database) in slave.skip_configs:
-                continue
-                
-            yield {
-                'name': '%s-%s-%s' % (branch, python, database),
-                'slavename': slave.slavename,
-                'workdir': '%s-%s-%s' % (branch, python, database),
-                'factory': make_factory(branch, python, database, slave.get_settings(python, database)),
-            }
+        all_dbs.update(parse_version_spec(db) for db in slave.databases)
+        all_pythons.update(k for k in slave.pythons if slave.pythons[k])
+    
+    # Now create a builder for each (branch, python, database) combo.
+    combos = itertools.product(branches, all_pythons, all_dbs)
+    for (branch, python, database) in combos:
+        # Figure out which slaves can run this combo by asking the slave.
+        builder_slaves = [slave for slave in slaves if slave.can_build(python, database)]
+        
+        # If none can we have to skip this combo.
+        if not builder_slaves:
+            continue
+        
+        # Make a builder config for this combo.
+        builders.append(BuilderConfig(
+            name = '%s-%s-%s%s' % (branch, python, database.name, database.version),
+            factory = make_factory(branch, python, database),
+            slavenames = [s.slavename for s in builder_slaves],
+        ))
+        
+    return builders
 
-def make_factory(branch, python, database, settings):
+def make_factory(branch, python, database):
+    """
+    Generates the BuildFactory (e.g. set of build steps) for this (branch,
+    python, database) combo. The series of steps is described in the module
+    docstring, above.
+    """
     f = BuildFactory()
     f.addSteps([
         buildsteps.DjangoSVN(branch=branch),
         buildsteps.DownloadVirtualenv(),
         buildsteps.UpdateVirtualenv(python=python, db=database),
-        buildsteps.GenerateSettings(python=python, db=database, settings=settings),
+        buildsteps.GenerateSettings(python=python, db=database),
         buildsteps.TestDjango(python=python, db=database),
     ])
     return f
-    
-builders = list(generate_builders(BRANCHES, slaves))

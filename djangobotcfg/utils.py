@@ -38,6 +38,3 @@ def parse_version_spec(spec, specificity=2):
     versionbits = m.group(2).split('.')
     versionbits.extend(['X'] * (specificity - len(versionbits)))
     return PackageSpec(base, ".".join(versionbits[:specificity]))
-    
-if __name__ == '__main__':
-    import doctest; doctest.testmod()

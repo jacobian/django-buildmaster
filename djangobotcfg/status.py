@@ -13,26 +13,27 @@ authz = Authz(
     cleanShutdown=True,
 )
 
-status = [
-    html.WebStatus(
-        http_port = '8010',
-        authz = authz,
-        order_console_by_time = True,
-        revlink = 'http://code.djangoproject.com/changeset/%s',
-        changecommentlink = (
-            r'\b#(\d+)\b',
-            r'http://code.djangoproject.com/ticket/\1',
-            r'Ticket \g<0>'
-        )
-    ),
+def get_status():
+    return [
+        html.WebStatus(
+            http_port = '8010',
+            authz = authz,
+            order_console_by_time = True,
+            revlink = 'http://code.djangoproject.com/changeset/%s',
+            changecommentlink = (
+                r'\b#(\d+)\b',
+                r'http://code.djangoproject.com/ticket/\1',
+                r'Ticket \g<0>'
+            )
+        ),
     
-    words.IRC(
-        host = 'irc.freenode.net',
-        channels = ['#revsys'],
-        nick = 'djangobuilds',
-        notify_events = {
-            'successToFailure': True,
-            'failureToSuccess': True,
-        }
-    )
-]
+        words.IRC(
+            host = 'irc.freenode.net',
+            channels = ['#revsys'],
+            nick = 'djangobuilds',
+            notify_events = {
+                'successToFailure': True,
+                'failureToSuccess': True,
+            }
+        )
+    ]

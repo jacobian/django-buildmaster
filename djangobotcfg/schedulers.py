@@ -1,21 +1,15 @@
 from buildbot.schedulers.basic import Scheduler
-from .builders import builders
 
-# XXX This is be repeated and should moved elsewhere.
-BRANCHES = ['trunk', '1.2.X']
+def get_schedulers(branches, builders):
+    """
+    Make a build scheduler for each branch.
+    """
+    return [make_scheduler(branch, builders) for branch in branches]
 
-def make_scheduler(branch):
+def make_scheduler(branch, builders):
     return Scheduler(
         name = branch,
         branch = branch,
         treeStableTimer = 10,
-        builderNames = [b["name"] for b in builders if branch in b['category']]
+        builderNames = [b.name for b in builders if branch in b.name]
     )
-
-schedulers = [
-    Scheduler(
-        name = 'trunk',
-        treeStableTimer = 10,
-        builderNames = [b["name"] for b in builders],
-    )
-]

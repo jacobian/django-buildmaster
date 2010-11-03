@@ -61,7 +61,7 @@ class UpdateVirtualenv(ShellCommand):
         ### XXX explain wtf is going on below - double string interpolation, WithProperties... ugh.
         command = [
             r'PYTHON=%%(python%s)s;' % python,
-            r'VENV=../venv-python%s-%s;' % (python, db),
+            r'VENV=../venv-python%s-%s%s;' % (python, db.name, db.version),
             
             # Create or update the virtualenv
             r'$PYTHON virtualenv.py --distribute --no-site-packages $VENV || exit 1;',

@@ -174,7 +174,8 @@ class TestDjango(Test):
             '--verbosity=%s' % verbosity,
         ]
         kwargs['env'] = {
-            'PYTHONPATH': '$PWD:$PWD/tests'
+            'PYTHONPATH': '$PWD:$PWD/tests',
+            'LC_ALL': 'en_US.utf8',
         }
         
         Test.__init__(self, **kwargs)

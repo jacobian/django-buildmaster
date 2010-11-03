@@ -44,4 +44,16 @@ def update_dependencies():
     pip = env.virtualenv.child('bin', 'pip')
     reqs = env.code_dir.child('deploy-requirements.txt')
     run('%s -q install -r %s' % (pip, reqs))
-    
+
+#
+# Buildbot has crazy bizare startup/shutdown that neither Upstart
+# nor Chef can quite figure out. So manage it here.
+#
+
+def buildbot(cmd):
+    """
+    Start/stop the buildbot (via buildbot:start, etc.).
+    """
+    buildbot = env.virtualenv.child('bin', 'buildbot')
+    master = env.virtualenv.child('master')
+    run(" ".join([buildbot, cmd, master]))

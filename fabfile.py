@@ -13,7 +13,7 @@ env.code_dir = env.deploy_base.child('master')
 env.git_url = 'git://github.com/jacobian/django-buildmaster.git'
 
 # FIXME: make a deploy branch in this repo to deploy against.
-env.default_deploy_ref = 'HEAD'
+env.default_deploy_ref = 'origin/master'
 
 def deploy():
     """

@@ -21,10 +21,7 @@ def deploy():
     """
     deploy_code()
     update_dependencies()
-    restart()
-
-def restart():
-    pass #sudo('service buildbot restart')
+    buildbot("restart")
 
 def deploy_code(ref=None):
     """

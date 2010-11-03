@@ -21,18 +21,6 @@ def get_slaves():
             databases = ['sqlite3'],
             max_builds = 1,
         ),
-        DjangoBuildSlave('bs2.jacobian.org',
-            os = 'ubuntu-10.04',
-            pythons = {'2.6': True},
-            databases = ['sqlite3', 'postgresql8.4'],
-            max_builds = 1,
-        ),
-        DjangoBuildSlave('bs3.jacobian.org',
-            os = 'ubuntu-10.04',
-            pythons = {'2.6': True},
-            databases = ['sqlite3', 'mysql5.1', 'postgresql8.4.3'],
-            max_builds = 1,
-        )
     ]
 
 class DjangoBuildSlave(BuildSlave):

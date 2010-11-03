@@ -71,7 +71,7 @@ def get_builders(branches, slaves):
         
         # Make a builder config for this combo.
         builders.append(BuilderConfig(
-            name = '%s-%s-%s%s' % (branch, python, database.name, database.version),
+            name = '%s-python%s-%s%s' % (branch, python, database.name, database.version),
             factory = make_factory(branch, python, database),
             slavenames = [s.slavename for s in builder_slaves],
         ))

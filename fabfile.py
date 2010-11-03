@@ -59,6 +59,6 @@ def buildbot(cmd):
         buildbot('stop')
         buildbot('start')
         
-    buildbot = env.virtualenv.child('bin', 'buildbot')
+    bb = env.virtualenv.child('bin', 'buildbot')
     master = env.virtualenv.child('master')
-    run(" ".join([buildbot, cmd, master]))
+    run(" ".join([bb, cmd, master]))

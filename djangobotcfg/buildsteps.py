@@ -168,7 +168,7 @@ class TestDjango(Test):
         
     def __init__(self, python, db, verbosity=2, **kwargs):
         kwargs['command'] = [
-            '../venv-python%s-%s/bin/python' % (python, db),
+            '../venv-python%s-%s%s/bin/python' % (python, db.name, db.version),
             'tests/runtests.py',
             '--settings=testsettings',
             '--verbosity=%s' % verbosity,

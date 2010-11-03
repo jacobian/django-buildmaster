@@ -91,7 +91,7 @@ class DjangoBuildSlave(BuildSlave):
         poorly-obfuscated password instead. Really, how secure does this need to
         be?
         """
-        passwordfile = Path(__file__).ancestor(2).child("passwords", "%s.pass" % name)
+        passwordfile = Path(__file__).ancestor(2).child("passwords", name)
         if passwordfile.exists():
             return passwordfile.read_file().strip()
         else:

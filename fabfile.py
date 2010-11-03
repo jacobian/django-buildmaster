@@ -54,6 +54,11 @@ def buildbot(cmd):
     """
     Start/stop the buildbot (via buildbot:start, etc.).
     """
+    # Buildbot doesn't have a restart, and reconfig doesn't seem to work.
+    if cmd == 'restart':
+        buildbot('stop')
+        buildbot('start')
+        
     buildbot = env.virtualenv.child('bin', 'buildbot')
     master = env.virtualenv.child('master')
     run(" ".join([buildbot, cmd, master]))

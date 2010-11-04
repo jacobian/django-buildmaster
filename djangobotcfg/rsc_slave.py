@@ -12,19 +12,37 @@ from twisted.python import log
 class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
     
     def __init__(self, name, password, cloudservers_username,
-                 cloudservers_apikey, imageid, flavorid=1, 
+                 cloudservers_apikey, image, flavor=1,
                  insubstantiate_after_build=True, **kwargs):
                  
         AbstractLatentBuildSlave.__init__(self, name, password, **kwargs)
 
         self.conn = cloudservers.CloudServers(cloudservers_username, cloudservers_apikey)
-        self.image = self.conn.images.get(id=imageid)
-        self.flavor = self.conn.flavors.get(id=flavorid)
+        self.image = self.get_image(image)
+        self.flavor = self.get_flavor(flavor)
         self.instance = None
         
         # Shut the server down once the build(s) are complete?
         self.insubstantiate_after_build = insubstantiate_after_build
-        
+    
+    def get_image(self, image):
+        """
+        Look up an image by name or by ID.
+        """
+        try:
+            return self.conn.images.get(id=int(image))
+        except ValueError:
+            return self.conn.images.find(name=image)
+            
+    def get_flavor(self, flavor):
+        """
+        Look up a flavor by name or by ID.
+        """
+        try:
+            return self.conn.flavors.get(id=int(flavor))
+        except ValueError:
+            return self.conn.flavors.find(name=flavor)
+            
     def start_instance(self):
         if self.instance is not None:
             raise ValueError('instance active')

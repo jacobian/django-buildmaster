@@ -5,27 +5,36 @@ Some of the ideas here come from Buildbot's buildbot:
 http://github.com/buildbot/metabbotcfg/blob/master/slaves.py.
 """
 
-import os
 from buildbot.buildslave import BuildSlave
 from unipath import FSPath as Path
 from .utils import parse_version_spec
+from .rsc_slave import CloudserversLatentBuildslave
 
 def get_slaves():
     """
     Get the list of slaves to insert into BuildmasterConfig['slaves'].
     """
     return [
-        DjangoBuildSlave('bs1.jacobian.org',
+        DjangoCloudserversBuildSlave('bs1.jacobian.org',
             os = 'ubuntu-9.10',
             pythons = {'2.4': True, '2.5': True, '2.6': True},
             databases = ['sqlite3'],
             max_builds = 1,
+            image = 'bs-ubuntu910-py24-py25-py26-sqlite',
+            flavor = '256 server',
+            
+            # FIXME: this can't be here.
+            cloudservers_username = 'jacobian',
+            cloudservers_apikey = 'XXX',
         ),
     ]
 
-class DjangoBuildSlave(BuildSlave):
+class BaseDjangoBuildSlave(object):
     """
     Encapsulates the settings for a single slave (e.g. node).
+    
+    This is a mixin because it could be mixed into both the base BuildSlave and
+    the a latent build slave (AWS or Cloudservers).
     """
     
     # Which OS this slave runs. This is just for human descriptions, but should 
@@ -66,22 +75,29 @@ class DjangoBuildSlave(BuildSlave):
     # 
     skip_configs = []
     
-    def __init__(self, name, **kwargs):
-        # Set attrs on self from **kwargs, leaving behind any kwargs to pass on
-        # to the base BuildSlave.
+    def extract_attrs(self, name, **kwargs):
+        """
+        Sets attrs on self from **kwargs, leaving behind any kwargs to pass on
+        to the base BuildSlave.
+        """
         for k in kwargs.keys():
             if hasattr(self, k):
                 setattr(self, k, kwargs.pop(k))
+        return kwargs
         
-        # Set some build properties for each Python version. This lets the
-        # actual build steps find the correct path for each Python binary.
-        properties = kwargs.pop('properties', {})
+    def get_properties(self):
+        """
+        Get some build properties for this slave.
+
+        This returns build properties for each Python version. This lets the
+        actual build steps find the correct path for each Python binary.
+        """
+        properties = {}
         for pyversion, pypath in self.pythons.items():
             if isinstance(pypath, bool):
                 pypath = "python%s" % pyversion
             properties['python%s' % pyversion] = pypath
-        
-        BuildSlave.__init__(self, name, self.get_password(name), properties=properties, **kwargs)
+        return properties
     
     def get_password(self, name):
         """
@@ -116,4 +132,21 @@ class DjangoBuildSlave(BuildSlave):
             if parse_version_spec(db) == dbspec:
                 return db
         return None
+
+#
+# FIXME: this is ugly. Any way to fix it?
+#
+
+class DjangoBuildSlave(BaseDjangoBuildSlave, BuildSlave):
+    def __init__(self, name, **kwargs):
+        kwargs = self.extract_attrs(name, **kwargs)
+        password = self.get_password(name)
+        kwargs.setdefault('properties', {}).update(self.get_properties())
+        BuildSlave.__init__(self, name, password, **kwargs)
         
+class DjangoCloudserversBuildSlave(BaseDjangoBuildSlave, CloudserversLatentBuildslave):
+    def __init__(self, name, **kwargs):
+        kwargs = self.extract_attrs(name, **kwargs)
+        password = self.get_password(name)
+        kwargs.setdefault('properties', {}).update(self.get_properties())
+        CloudserversLatentBuildslave.__init__(self, name, password, **kwargs)

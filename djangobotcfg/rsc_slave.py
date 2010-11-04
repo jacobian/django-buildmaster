@@ -58,17 +58,17 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
             time.sleep(5)
             duration += 5
             if duration % 60 == 0:
-                log.msg('%s %s has waited %d minutes for instance %s' %
-                        (self.__class__.__name__, self.slavename, duration//60, self.instance.id))
+                log.msg('%s %s has waited %d seconds for instance %s' %
+                        (self.__class__.__name__, self.slavename, duration, self.instance.id))
             self.instance.get()
             
         if self.instance.status != 'ACTIVE':
-            log.msg('%s %s failed to start instance %s (%s)' %
-                    (self.__class__.__name__, self.slavename, self.instance.id, self.instance.state))
+            log.msg('%s %s failed to start instance %s (status=%s)' %
+                    (self.__class__.__name__, self.slavename, self.instance.id, self.instance.status))
             raise LatentBuildSlaveFailedToSubstantiate(self.instance.id, self.instance.status)
             
-        log.msg('%s %s instance %s started about %d minutes %d seconds' %
-                (self.__class__.__name__, self.slavename, self.instance.id, duration//60, duration%60))
+        log.msg('%s %s instance %s started in about %d seconds' %
+                (self.__class__.__name__, self.slavename, self.instance.id, duration))
         return self.instance.id
         
     def stop_instance(self, fast=False):

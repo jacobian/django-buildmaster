@@ -6,3 +6,8 @@ buildbot==0.8.2
 zope.interface==3.6.1
 Unipath==0.2.1
 python-cloudservers==1.2
+
+# I have no idea why this can't be installed from PyPI.
+PyCrypto==2.3
+pyasn1==0.0.11a
+http://tmrc.mit.edu/mirror/twisted/Twisted/10.1/Twisted-10.1.0.tar.bz2

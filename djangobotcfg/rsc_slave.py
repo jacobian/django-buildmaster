@@ -61,7 +61,11 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
                 log.msg('%s %s has waited %d seconds for instance %s' %
                         (self.__class__.__name__, self.slavename, duration, self.instance.id))
             self.instance.get()
-            
+        
+        # FIXME: sometimes status goes BUILD -> UNKNOWN -> ACTIVE briefly.
+        #        just wait for it to become ACTIVE? Or set some time out?
+        #        Also, can we re-try? Sometimes booting doesn't work right.
+        
         if self.instance.status != 'ACTIVE':
             log.msg('%s %s failed to start instance %s (status=%s)' %
                     (self.__class__.__name__, self.slavename, self.instance.id, self.instance.status))
@@ -78,10 +82,13 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
     
     def _stop_instance(self, instance):
         instance.delete()
+        # FIXME: this needs to wait until the slave goes away.
+        #        ... and set self.instance = None?
         log.msg('%s %s deleted instance %s' % 
                 (self.__class__.__name__, self.slavename, instance.id))
-        
+                
     def buildFinished(self, *args, **kwargs):
+        # FIXME: any way to keep the slave up if there are still pending builds for it?
         AbstractLatentBuildSlave.buildFinished(self, *args, **kwargs)
         if self.insubstantiate_after_build:
             log.msg("%s %s got buildFinished notification - attempting to insubstantiate" %

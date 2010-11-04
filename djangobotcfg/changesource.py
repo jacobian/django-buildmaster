@@ -26,6 +26,7 @@ def get_change_source(svnurl, branches):
         
     return SVNPoller(
         svnurl = svnurl,
+        project = "Django",
         split_file = split_file,
         
         # Poll for new SVN changes every 5 minutes.

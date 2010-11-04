@@ -61,7 +61,7 @@ class UpdateVirtualenv(ShellCommand):
         ### XXX explain wtf is going on below - double string interpolation, WithProperties... ugh.
         command = [
             r'PYTHON=%%(python%s)s;' % python,
-            r'VENV=../venv-python%s-%s;' % (python, db),
+            r'VENV=../venv-python%s-%s%s;' % (python, db.name, db.version),
             
             # Create or update the virtualenv
             r'$PYTHON virtualenv.py --distribute --no-site-packages $VENV || exit 1;',
@@ -168,13 +168,14 @@ class TestDjango(Test):
         
     def __init__(self, python, db, verbosity=2, **kwargs):
         kwargs['command'] = [
-            '../venv-python%s-%s/bin/python' % (python, db),
+            '../venv-python%s-%s%s/bin/python' % (python, db.name, db.version),
             'tests/runtests.py',
             '--settings=testsettings',
             '--verbosity=%s' % verbosity,
         ]
         kwargs['env'] = {
-            'PYTHONPATH': '$PWD:$PWD/tests'
+            'PYTHONPATH': '$PWD:$PWD/tests',
+            'LC_ALL': 'en_US.utf8',
         }
         
         Test.__init__(self, **kwargs)

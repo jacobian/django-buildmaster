@@ -1,6 +1,6 @@
 import unipath
 from fabric.api import *
-from fabric.contrib import files
+from fabric.contrib import files, project
 
 # Fab settings
 env.hosts = ['ve.djangoproject.com']
@@ -33,6 +33,14 @@ def deploy_code(ref=None):
         run('git clone %s %s' % (env.git_url, env.code_dir))
     with cd(env.code_dir):
         run('git fetch && git reset --hard %s' % ref)
+
+def ghetto_deploy():
+    """
+    Push code directly to the server without going through git.
+    
+    Because I'm lazy, that's why.
+    """
+    project.rsync_project(remote_dir=env.deploy_base, exclude=['.git'], delete=True)
     
 def update_dependencies():
     """

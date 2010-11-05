@@ -40,7 +40,7 @@ def ghetto_deploy():
     
     Because I'm lazy, that's why.
     """
-    project.rsync_project(remote_dir=env.deploy_base, exclude=['.git'], delete=True)
+    project.rsync_project(remote_dir=env.deploy_base, exclude=['.git'])
     
 def update_dependencies():
     """

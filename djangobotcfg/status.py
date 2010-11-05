@@ -2,17 +2,6 @@ from buildbot.status import html, words
 from buildbot.status.web.authz import Authz
 from buildbot.status.web.auth import BasicAuth
 
-# authz = Authz(
-#     forceBuild=True,
-#     forceAllBuilds=True,
-#     pingBuilder=True,
-#     gracefulShutdown=True,
-#     stopBuild=True,
-#     stopAllBuilds=True,
-#     cancelPendingBuild=True,
-#     cleanShutdown=True,
-# )
-
 def get_status():
     return [
         html.WebStatus(
@@ -26,14 +15,4 @@ def get_status():
                 r'Ticket \g<0>'
             )
         ),
-    
-        words.IRC(
-            host = 'irc.freenode.net',
-            channels = ['#revsys'],
-            nick = 'djangobuilds',
-            notify_events = {
-                'successToFailure': True,
-                'failureToSuccess': True,
-            }
-        )
     ]

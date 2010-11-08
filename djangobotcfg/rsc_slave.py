@@ -43,37 +43,40 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
             return self.conn.flavors.get(id=int(flavor))
         except ValueError:
             return self.conn.flavors.find(name=flavor)
-            
-    def start_instance(self):
-        # Prevent starting a new instance while an old one is shutting down.
-        self.instance_lock.acquire()
-        return threads.deferToThread(self._start_instance)
     
-    def _start_instance(self):
+    def start_instance(self):
+        d = self.instance_lock.acquire()
+        def unlocked(res):
+            return threads.deferToThread(self._start_instance)
+        d.addCallback(unlocked)
+        return d
+
+    def _start_instance(self,):
         self.instance = self.conn.servers.create(self.slavename, self.image, self.flavor)
         log.msg('%s %s started instance %s' % 
                 (self.__class__.__name__, self.slavename, self.instance.id))
         
-        duration = 0
+        # Wait for the server to boot.
+        d1 = 0
         while self.instance.status == 'BUILD':
             self.instance.get()
             time.sleep(5)
-            duration += 5
-            if duration % 60 == 0:
+            d1 += 5
+            if d1 % 60 == 0:
                 log.msg('%s %s has waited %d seconds for instance %s' %
-                        (self.__class__.__name__, self.slavename, duration, self.instance.id))
+                        (self.__class__.__name__, self.slavename, d1, self.instance.id))
         
         # Sometimes status goes BUILD -> UNKNOWN briefly before coming ACTIVE.
         # So we'll wait for it in the UNKNOWN state for a bit.
-        duration = 0
+        d2 = 0
         while self.instance.status == 'UNKNOWN':
             self.instance.get()
             time.sleep(5)
-            duration += 5
-            if duration % 60 == 0:
+            d2 += 5
+            if d2 % 60 == 0:
                 log.msg('%s %s instance %s has been UNKNOWN for %d seconds' % 
-                        (self.__class__.__name__, self.slavename, duration, self.instance.id))
-            if duration == 600:
+                        (self.__class__.__name__, self.slavename, d2, self.instance.id))
+            if d2 == 600:
                 log.msg('%s %s giving up on instance %s after UNKNOWN for 10 minutes.' % 
                         (self.__class__.__name__, self.slavename, self.instance.id))
                 raise LatentBuildSlaveFailedToSubstantiate(self.instance.id, self.instance.status)
@@ -94,54 +97,43 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         
         # FIXME: this message prints the wrong number of seconds.
         log.msg('%s %s instance %s started in about %d seconds' %
-                (self.__class__.__name__, self.slavename, self.instance.id, duration))
+                (self.__class__.__name__, self.slavename, self.instance.id, d1+d2))
+        
         return self.instance.id
         
     def stop_instance(self, fast=False):
         if self.instance is None:
             return defer.succeed(None)
-            
-        instance, self.instance = self.instance, None
-        d = threads.deferToThread(self._stop_instance, instance)
-    
-        # Release the lock when _stop_instance succeeds.
-        @d.addCallback
-        def _done(res):
-            return self.instance_lock.release()
-            
-        # XXX Is this needed? Coppied from http://buildbot.net/trac/ticket/1001
-        @d.addCallback
-        def _released(res):
-            return True
-            
-        return d
+        return threads.deferToThread(self._stop_instance)
+
+    def _stop_instance(self):
+        log.msg('%s %s deleting instance %s' % (
+                self.__class__.__name__, self.slavename, self.instance.id))
         
-        # XXX It seems like this might work, too:
-        # return threads.deferToThread(self._stop_instance, instance).addCallback(self.instance_lock.release)
-    
-    def _stop_instance(self, instance):
-        instance.delete()
+        self.instance.delete()
         
         # Wait for the instance to go away. We can't just wait for a deleted
         # state, unfortunately -- the resource just goes away and we get a 404.
         try:
             duration = 0
-            while instance.status == 'ACTIVE':
-                instance.get()
+            while self.instance.status == 'ACTIVE':
+                self.instance.get()
                 time.sleep(5)
                 duration += 5
                 if duration % 60 == 0:
                     log.msg('%s %s has waited %s for instance %s to die' % 
                             (self.__class__.__name__, self.slavename, duration, self.instance.id))
                     # Try to delete it again, just for funsies.
-                    instance.delete()
+                    self.instance.delete()
         except cloudservers.NotFound:
             # We expect this NotFound - it's what happens when the slave dies.
             pass
-            
         
         log.msg('%s %s deleted instance %s' % 
-                (self.__class__.__name__, self.slavename, instance.id))
+                (self.__class__.__name__, self.slavename, self.instance.id))
+
+        self.instance = None
+        self.instance_lock.release()
                 
     def buildFinished(self, *args, **kwargs):
         # FIXME: any way to keep the slave up if there are still pending builds for it?

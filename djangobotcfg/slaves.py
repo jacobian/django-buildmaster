@@ -6,7 +6,6 @@ http://github.com/buildbot/metabbotcfg/blob/master/slaves.py.
 """
 
 import json
-from contextlib import closing
 from buildbot.buildslave import BuildSlave
 from unipath import FSPath as Path
 from .utils import parse_version_spec
@@ -27,6 +26,16 @@ def get_slaves():
             databases = ['sqlite3'],
             max_builds = 1,
             image = 'bs-ubuntu910-py24-py25-py26-sqlite',
+            flavor = '256 server',
+            cloudservers_username = creds['username'],
+            cloudservers_apikey = creds['apikey'],
+        ),
+        DjangoCloudserversBuildSlave('bs2.jacobian.org',
+            os = 'ubuntu-10.04',
+            pythons = {'2.6': True},
+            databases = ['postgresql8.4.5'],
+            max_builds = 1,
+            image = 'bs-ubuntu1004-py26-postgres845',
             flavor = '256 server',
             cloudservers_username = creds['username'],
             cloudservers_apikey = creds['apikey'],

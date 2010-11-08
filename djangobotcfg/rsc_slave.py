@@ -26,7 +26,7 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         Look up an image by name or by ID.
         """
         try:
-            return self.conn.images.get(id=int(image))
+            return self.conn.images.get(int(image))
         except ValueError:
             return self.conn.images.find(name=image)
             
@@ -35,7 +35,7 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         Look up a flavor by name or by ID.
         """
         try:
-            return self.conn.flavors.get(id=int(flavor))
+            return self.conn.flavors.get(int(flavor))
         except ValueError:
             return self.conn.flavors.find(name=flavor)
     

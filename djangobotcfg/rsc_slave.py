@@ -12,8 +12,7 @@ from twisted.python import log
 class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
     
     def __init__(self, name, password, cloudservers_username,
-                 cloudservers_apikey, image, flavor=1,
-                 insubstantiate_after_build=True, **kwargs):
+                 cloudservers_apikey, image, flavor=1, **kwargs):
                  
         AbstractLatentBuildSlave.__init__(self, name, password, **kwargs)
 
@@ -21,11 +20,7 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         self.image = self.get_image(image)
         self.flavor = self.get_flavor(flavor)
         self.instance = None
-        self.instance_lock = defer.DeferredLock()
-        
-        # Shut the server down once the build(s) are complete?
-        self.insubstantiate_after_build = insubstantiate_after_build
-    
+
     def get_image(self, image):
         """
         Look up an image by name or by ID.
@@ -45,11 +40,9 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
             return self.conn.flavors.find(name=flavor)
     
     def start_instance(self):
-        d = self.instance_lock.acquire()
-        def unlocked(res):
-            return threads.deferToThread(self._start_instance)
-        d.addCallback(unlocked)
-        return d
+        if self.instance is not None:
+            raise ValueError('instance active')
+        return threads.deferToThread(self._start_instance)
 
     def _start_instance(self,):
         self.instance = self.conn.servers.create(self.slavename, self.image, self.flavor)
@@ -104,41 +97,33 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
     def stop_instance(self, fast=False):
         if self.instance is None:
             return defer.succeed(None)
-        return threads.deferToThread(self._stop_instance)
+            
+        instance = self.instance
+        self.instance = None
+        return threads.deferToThread(self._stop_instance, instance)
 
-    def _stop_instance(self):
+    def _stop_instance(self, instance):
         log.msg('%s %s deleting instance %s' % (
-                self.__class__.__name__, self.slavename, self.instance.id))
-        
-        self.instance.delete()
+                self.__class__.__name__, self.slavename, instance.id))
+        instance.delete()
         
         # Wait for the instance to go away. We can't just wait for a deleted
         # state, unfortunately -- the resource just goes away and we get a 404.
         try:
             duration = 0
-            while self.instance.status == 'ACTIVE':
-                self.instance.get()
+            while instance.status == 'ACTIVE':
+                instance.get()
                 time.sleep(5)
                 duration += 5
                 if duration % 60 == 0:
                     log.msg('%s %s has waited %s for instance %s to die' % 
-                            (self.__class__.__name__, self.slavename, duration, self.instance.id))
+                            (self.__class__.__name__, self.slavename, duration, instance.id))
                     # Try to delete it again, just for funsies.
-                    self.instance.delete()
+                    instance.delete()
         except cloudservers.NotFound:
             # We expect this NotFound - it's what happens when the slave dies.
             pass
         
         log.msg('%s %s deleted instance %s' % 
-                (self.__class__.__name__, self.slavename, self.instance.id))
-
-        self.instance = None
-        self.instance_lock.release()
+                (self.__class__.__name__, self.slavename, instance.id))
                 
-    def buildFinished(self, *args, **kwargs):
-        # FIXME: any way to keep the slave up if there are still pending builds for it?
-        AbstractLatentBuildSlave.buildFinished(self, *args, **kwargs)
-        if self.insubstantiate_after_build:
-            log.msg("%s %s got buildFinished notification - attempting to insubstantiate" %
-                    (self.__class__.__name__, self.slavename))
-            self.insubstantiate()    

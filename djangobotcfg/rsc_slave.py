@@ -12,13 +12,14 @@ from twisted.python import log
 class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
     
     def __init__(self, name, password, cloudservers_username,
-                 cloudservers_apikey, image, flavor=1, **kwargs):
+                 cloudservers_apikey, image, flavor=1, files=None, **kwargs):
                  
         AbstractLatentBuildSlave.__init__(self, name, password, **kwargs)
 
         self.conn = cloudservers.CloudServers(cloudservers_username, cloudservers_apikey)
         self.image = self.get_image(image)
         self.flavor = self.get_flavor(flavor)
+        self.files = files
         self.instance = None
 
     def get_image(self, image):
@@ -45,7 +46,10 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         return threads.deferToThread(self._start_instance)
 
     def _start_instance(self,):
-        self.instance = self.conn.servers.create(self.slavename, self.image, self.flavor)
+        self.instance = self.conn.servers.create(self.slavename, 
+                                                 image=self.image,
+                                                 flavor=self.flavor,
+                                                 files=self.files)
         log.msg('%s %s started instance %s' % 
                 (self.__class__.__name__, self.slavename, self.instance.id))
         

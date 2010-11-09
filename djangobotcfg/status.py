@@ -32,7 +32,7 @@ def get_status(secrets):
         words.IRC(
             host = 'irc.freenode.net',
             channels = ['#django-dev'],
-            nick = 'djbuildbot',
+            nick = 'djbuilds',
             password = str(secrets['irc']['password']),
             notify_events = {
                 'successToFailure': True,

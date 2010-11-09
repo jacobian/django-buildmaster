@@ -28,4 +28,14 @@ def get_status():
                 r'Ticket \g<0>'
             )
         ),
+   
+        words.IRC(
+            host = 'irc.freenode.net',
+            channels = ['#django-dev'],
+            nick = 'djbuildbot',
+            notify_events = {
+                'successToFailure': True,
+                'failureToSuccess': True,
+            }
+        ),
     ]

@@ -162,4 +162,14 @@ class DjangoCloudserversBuildSlave(BaseDjangoBuildSlave, CloudserversLatentBuild
         kwargs = self.extract_attrs(name, **kwargs)
         password = self.get_password(name)
         kwargs.setdefault('properties', {}).update(self.get_properties())
+        
+        # The slave's set up to read hostname and password from the slave's
+        # "info" directory, which is cool beaause it means we can re-use
+        # the same image for multiple slaves. But we need a different name
+        # for each, so do a bit of magic with the API here.
+        kwargs.setdefault('files', {}).update({
+                '/home/buildslave/slave/buildslave/info/host': '%s\n' % name,
+                '/home/buildslave/slave/buildslave/info/password': '%s\n' % password,
+        })
+        
         CloudserversLatentBuildslave.__init__(self, name, password, **kwargs)

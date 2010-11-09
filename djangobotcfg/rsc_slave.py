@@ -17,8 +17,8 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         AbstractLatentBuildSlave.__init__(self, name, password, **kwargs)
 
         self.conn = cloudservers.CloudServers(cloudservers_username, cloudservers_apikey)
-        self.image = self.get_image(image)
-        self.flavor = self.get_flavor(flavor)
+        self.image = image
+        self.flavor = flavor
         self.files = files
         self.instance = None
 
@@ -47,8 +47,8 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
 
     def _start_instance(self,):
         self.instance = self.conn.servers.create(self.slavename, 
-                                                 image=self.image,
-                                                 flavor=self.flavor,
+                                                 image=self.get_image(self.image),
+                                                 flavor=self.get_flavor(self.flavor),
                                                  files=self.files)
         log.msg('%s %s started instance %s' % 
                 (self.__class__.__name__, self.slavename, self.instance.id))

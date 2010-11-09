@@ -5,40 +5,43 @@ Some of the ideas here come from Buildbot's buildbot:
 http://github.com/buildbot/metabbotcfg/blob/master/slaves.py.
 """
 
-import json
 from buildbot.buildslave import BuildSlave
 from unipath import FSPath as Path
 from .utils import parse_version_spec
 from .rsc_slave import CloudserversLatentBuildslave
 
-def get_slaves():
+def get_slaves(secrets):
     """
     Get the list of slaves to insert into BuildmasterConfig['slaves'].
     """
-    # Load Rackspace credentials.
-    credfile = Path(__file__).ancestor(2).child("passwords", "cloudservers.json")
-    creds = json.loads(credfile.read_file())
     
+    # Read in secret passwords (and a default) from the secrets config.
+    passwords = secrets['slaves']['passwords']
+    default_password = secrets['slaves']['passwords']['*']
+    
+    # Send back a list of BuildSlave instances.
     return [
         DjangoCloudserversBuildSlave('bs1.jacobian.org',
+            password = passwords.get('bs1.jacobian.org', default_password),
             os = 'ubuntu-9.10',
             pythons = {'2.4': True, '2.5': True, '2.6': True},
             databases = ['sqlite3'],
             max_builds = 1,
             image = 'bs-ubuntu910-py24-py25-py26-sqlite',
             flavor = '256 server',
-            cloudservers_username = creds['username'],
-            cloudservers_apikey = creds['apikey'],
+            cloudservers_username = secrets['cloudservers']['username'],
+            cloudservers_apikey = secrets['cloudservers']['apikey'],
         ),
         DjangoCloudserversBuildSlave('bs2.jacobian.org',
+            password = passwords.get('bs2.jacobian.org', default_password),
             os = 'ubuntu-10.04',
             pythons = {'2.6': True},
             databases = ['postgresql8.4.5'],
             max_builds = 1,
             image = 'bs-ubuntu1004-py26-postgres845',
             flavor = '256 server',
-            cloudservers_username = creds['username'],
-            cloudservers_apikey = creds['apikey'],
+            cloudservers_username = secrets['cloudservers']['username'],
+            cloudservers_apikey = secrets['cloudservers']['apikey'],
         ),
     ]
 
@@ -112,20 +115,6 @@ class BaseDjangoBuildSlave(object):
             properties['python%s' % pyversion] = pypath
         return properties
     
-    def get_password(self, name):
-        """
-        Look up a password for the slave.
-        
-        This reads a password out of a file, and if it doesn't exist returns a
-        poorly-obfuscated password instead. Really, how secure does this need to
-        be?
-        """
-        passwordfile = Path(__file__).ancestor(2).child("passwords", name)
-        if passwordfile.exists():
-            return passwordfile.read_file().strip()
-        else:
-            return name.encode('rot13')
-    
     def can_build(self, python, db):
         """
         Returns True if this slave can build the given python/db combo.
@@ -151,16 +140,14 @@ class BaseDjangoBuildSlave(object):
 #
 
 class DjangoBuildSlave(BaseDjangoBuildSlave, BuildSlave):
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, password, **kwargs):
         kwargs = self.extract_attrs(name, **kwargs)
-        password = self.get_password(name)
         kwargs.setdefault('properties', {}).update(self.get_properties())
         BuildSlave.__init__(self, name, password, **kwargs)
         
 class DjangoCloudserversBuildSlave(BaseDjangoBuildSlave, CloudserversLatentBuildslave):
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, password, **kwargs):
         kwargs = self.extract_attrs(name, **kwargs)
-        password = self.get_password(name)
         kwargs.setdefault('properties', {}).update(self.get_properties())
         
         # The slave's set up to read hostname and password from the slave's

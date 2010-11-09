@@ -15,7 +15,7 @@ authz = Authz(
     cleanShutdown = 'auth',
 )
 
-def get_status():
+def get_status(secrets):
     return [
         html.WebStatus(
             http_port = '8010',
@@ -33,6 +33,7 @@ def get_status():
             host = 'irc.freenode.net',
             channels = ['#django-dev'],
             nick = 'djbuildbot',
+            password = str(secrets['irc']['password']),
             notify_events = {
                 'successToFailure': True,
                 'failureToSuccess': True,

@@ -90,6 +90,6 @@ def make_factory(branch, python, database):
         buildsteps.DownloadVirtualenv(),
         buildsteps.UpdateVirtualenv(python=python, db=database),
         buildsteps.GenerateSettings(python=python, db=database),
-        buildsteps.TestDjango(python=python, db=database),
+        buildsteps.TestDjango(python=python, db=database, verbosity=1),
     ])
     return f

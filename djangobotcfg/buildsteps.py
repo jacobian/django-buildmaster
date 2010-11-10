@@ -151,7 +151,7 @@ class GenerateSettings(StringDownload):
                     'HOST': 'localhost',
                     'USER': 'djbuildslave',
                     'PASSWORD': 'djbuildslave',
-                    'TEST_NAME': 'djbuildslave%s' % os.getpid(),
+                    'TEST_NAME': 'djbuild%s' % os.getpid(),
                 },
                 'other': {
                     'ENGINE': 'django.db.backends.sqlite3',

@@ -43,6 +43,18 @@ def get_slaves(secrets):
             cloudservers_username = secrets['cloudservers']['username'],
             cloudservers_apikey = secrets['cloudservers']['apikey'],
         ),
+        DjangoCloudserversBuildSlave('bs3.jacobian.org',
+            password = passwords.get('bs3.jacobian.org', default_password),
+            os = 'ubuntu-10.04',
+            pythons = {'2.6': True},
+            #NB: InnoDB. Need somewhere to indicate that.
+            databases = ['mysql5.1.41'],
+            max_builds = 1,
+            image = 'bs-ubuntu1004-py26-mysql5141',
+            flavor = '256 server',
+            cloudservers_username = secrets['cloudservers']['username'],
+            cloudservers_apikey = secrets['cloudservers']['apikey'],
+        )
     ]
 
 class BaseDjangoBuildSlave(object):
@@ -156,7 +168,7 @@ class DjangoCloudserversBuildSlave(BaseDjangoBuildSlave, CloudserversLatentBuild
         # for each, so do a bit of magic with the API here.
         kwargs.setdefault('files', {}).update({
                 '/home/buildslave/slave/buildslave/info/host': '%s\n' % name,
-                '/home/buildslave/slave/buildslave/info/password': '%s\n' % password,
+                '/home/buildslave/slave/buildslave/info/pass': '%s\n' % password,
         })
         
         CloudserversLatentBuildslave.__init__(self, name, password, **kwargs)

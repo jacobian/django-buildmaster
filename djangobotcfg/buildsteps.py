@@ -147,11 +147,11 @@ class GenerateSettings(StringDownload):
             DATABASES = {
                 'default': {
                     'ENGINE': 'django.db.backends.mysql',
-                    'NAME': 'django_buildslave',
+                    'NAME': 'djbuildslave',
                     'HOST': 'localhost',
-                    'USER': 'django_buildslave',
-                    'PASSWORD': 'django_buildslave',
-                    'TEST_NAME': 'django_buildslave_%s' % os.getpid(),
+                    'USER': 'djbuildslave',
+                    'PASSWORD': 'djbuildslave',
+                    'TEST_NAME': 'djbuildslave%s' % os.getpid(),
                 },
                 'other': {
                     'ENGINE': 'django.db.backends.sqlite3',

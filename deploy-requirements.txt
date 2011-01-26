@@ -5,7 +5,7 @@
 #
 Jinja2==2.5.5
 Twisted==10.1.0
-buildbot==0.8.2
+buildbot==0.8.3p1
 zope.interface==3.6.1
 
 #

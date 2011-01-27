@@ -130,4 +130,15 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         
         log.msg('%s %s deleted instance %s' % 
                 (self.__class__.__name__, self.slavename, instance.id))
-                
+    
+    #
+    # Attempted workaround for http://trac.buildbot.net/ticket/1780
+    #
+    def attached(self, bot):
+        if self.substantiation_deferred is None:
+            msg = 'Slave %s received connection while not trying to ' \
+                    'substantiate.  Ignoring.' % (self.slavename,)
+            log.msg(msg)
+            return defer.succeed(None)
+        return AbstractBuildSlave.attached(self, bot)
+    

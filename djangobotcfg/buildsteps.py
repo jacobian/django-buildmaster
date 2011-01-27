@@ -32,6 +32,8 @@ class DjangoSVN(SVN):
         kwargs['svnurl'] = svnurl
         SVN.__init__(self, **kwargs)
         
+        self.addFactoryArguments(branch=branch)
+        
 class DownloadVirtualenv(FileDownload):
     """
     Downloads virtualenv from the master to the slave.

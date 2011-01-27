@@ -30,6 +30,7 @@ class DjangoSVN(SVN):
             svnurl = 'http://code.djangoproject.com/svn/django/branches/releases/%s' % branch
         
         kwargs['svnurl'] = svnurl
+        kwargs['mode'] = 'clobber'
         SVN.__init__(self, **kwargs)
         
         self.addFactoryArguments(branch=branch)

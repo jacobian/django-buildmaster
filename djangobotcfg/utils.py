@@ -3,6 +3,8 @@ A couple random utility functions.
 """
 
 import re
+import sys
+import time
 import collections
 
 PackageSpec = collections.namedtuple('PackageSpec', 'name version')
@@ -38,3 +40,4 @@ def parse_version_spec(spec, specificity=2):
     versionbits = m.group(2).split('.')
     versionbits.extend(['X'] * (specificity - len(versionbits)))
     return PackageSpec(base, ".".join(versionbits[:specificity]))
+    

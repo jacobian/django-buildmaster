@@ -2,6 +2,7 @@
 A latent build slave that runs on Rackspace Cloud.
 """
 
+import sys
 import time
 import cloudservers
 from buildbot.buildslave import AbstractLatentBuildSlave
@@ -17,6 +18,7 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
         AbstractLatentBuildSlave.__init__(self, name, password, **kwargs)
 
         self.conn = cloudservers.CloudServers(cloudservers_username, cloudservers_apikey)
+        self.conn.client = RetryingCloudServersClient(cloudservers_username, cloudservers_apikey)
         self.image = image
         self.flavor = flavor
         self.files = files
@@ -141,3 +143,33 @@ class CloudserversLatentBuildslave(AbstractLatentBuildSlave):
             log.msg(msg)
             return defer.succeed(None)
         return AbstractLatentBuildSlave.attached(self, bot)
+
+class RetryingCloudServersClient(cloudservers.CloudServersClient):
+    """
+    A subclass of CloudServersClient that silently attempts to retry failing
+    API calls until they work or until a certain number of attempts fail.
+    """
+    def __init__(self, username, apikey, retries=10, sleep=0.5, exceptions=(ValueError,)):
+        super(RetryingCloudServersClient, self).__init__(username, apikey)
+        self.retries = retries
+        self.sleep = sleep
+        self.exceptions = exceptions
+        
+    def request(self, *args, **kwargs):
+        # Track the first exception raised so we can re-raise it.
+        ex = None
+        
+        for i in range(self.retries):
+            try:
+                return super(RetryingCloudServersClient, self).request(*args, **kwargs)
+            except self.exceptions:
+                if not ex:
+                    ex = sys.exc_info()
+                if self.sleep:
+                    time.sleep(self.sleep)
+                continue
+        
+        # If we're gotten here then the return in the try block hasn't fired,
+        # meaning we've raised an exception each time.
+        raise ex[0], ex[1], ex[2]
+    

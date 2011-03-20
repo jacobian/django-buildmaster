@@ -149,7 +149,8 @@ class RetryingCloudServersClient(cloudservers.CloudServersClient):
     A subclass of CloudServersClient that silently attempts to retry failing
     API calls until they work or until a certain number of attempts fail.
     """
-    def __init__(self, username, apikey, retries=10, sleep=0.5, exceptions=(ValueError,)):
+    def __init__(self, username, apikey, retries=10, sleep=0.5, 
+                 exceptions=(ValueError, cloudservers.CloudServersException)):
         super(RetryingCloudServersClient, self).__init__(username, apikey)
         self.retries = retries
         self.sleep = sleep

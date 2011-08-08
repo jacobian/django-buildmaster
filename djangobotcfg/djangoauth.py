@@ -5,7 +5,7 @@ This is currently half-assed and assumes that django.settings.configure() has
 already been called by the time that DjangoAuth.authenticate gets called, and
 that the database is set up correctly, etc.
 
-Bu default, this only authenticates users who are is_staff=True, but you can
+By default, this only authenticates users who are is_staff=True, but you can
 override that by subclassing and overriding user_has_access().
 """
 
